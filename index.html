@@ -381,8 +381,8 @@
                             currentDate.setDate(mondayOfTargetWeek.getDate() + i);
                             const dateStr = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-${String(currentDate.getDate()).padStart(2, '0')}`;
 
-                            const dayName = currentDate.toLocaleDateString('en-US', { weekday: 'long' });
-                            const displayDate = currentDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+                            const dayName = currentDate.toLocaleDateString('en-US', { weekday: 'short' });
+                            const displayDate = currentDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 
                             const dailyMenuSection = document.createElement('div');
                             dailyMenuSection.classList.add('daily-menu-section', 'rounded-lg', 'mb-6');
