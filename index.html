@@ -85,23 +85,27 @@
         }
 
         .menu-items-content {
-            max-height: 1000px; /* Arbitrary large value for expanded state */
-            overflow: hidden;
+            /* Changed max-height to a very large value to accommodate all content when expanded */
+            max-height: 9999px; /* This allows content to fully show */
+            overflow: hidden; /* Keep overflow hidden for smooth transition */
             transition: max-height 0.5s ease-out, opacity 0.5s ease-out;
             opacity: 1;
         }
         .menu-items-content.collapsed {
             max-height: 0;
             opacity: 0;
+            /* Ensure no padding remains when collapsed */
             padding-top: 0;
             padding-bottom: 0;
+            margin-top: 0;
+            margin-bottom: 0;
         }
 
         .menu-items-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
             gap: 25px;
-            margin-top: 20px;
+            margin-top: 20px; /* Keep margin for spacing within expanded content */
             text-align: left;
         }
         .menu-item {
