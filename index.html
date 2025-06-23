@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daily Menu Viewer - Weekly</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: "Inter", sans-serif;
+            background-color: #f0f4f8;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        .container {
+            background-color: #ffffff;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            max-width: 900px; /* Slightly wider for multiple days */
+            width: 100%;
+            text-align: center;
+        }
+        h1 {
+            color: #1a202c;
+            margin-bottom: 25px;
+            font-size: 2.25rem; /* text-4xl */
+            font-weight: 700; /* font-bold */
+        }
+        .message-box {
+            background-color: #fff3cd; /* yellow-100 */
+            border: 1px solid #ffeeba; /* yellow-200 */
+            color: #856404; /* yellow-800 */
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+            margin-bottom: 20px; /* Add margin to separate from content */
+            text-align: left;
+            font-weight: 500;
+        }
+        .loading-spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .daily-menu-section {
+            margin-top: 30px;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 20px;
+            background-color: #f7fafc;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+        .daily-menu-section h2 {
+            font-size: 1.875rem; /* text-3xl */
+            font-weight: 600; /* font-semibold */
+            color: #2d3748;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .menu-items-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 25px;
+            margin-top: 20px;
+            text-align: left;
+        }
+        .menu-item {
+            background-color: #ffffff;
+            border: 1px solid #cbd5e0;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+        }
+        .menu-item img {
+            width: 100%;
+            height: 200px; /* Fixed height for consistency */
+            object-fit: cover; /* Ensures image covers the area */
+            border-radius: 8px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .menu-item h3 {
+            font-size: 1.5rem; /* text-xl */
+            font-weight: 700; /* font-bold */
+            color: #2d3748;
+            margin-bottom: 10px;
+        }
+        .menu-item p {
+            font-size: 1rem; /* text-base */
+            color: #4a5568;
+            line-height: 1.5;
+            text-align: justify; /* Justify description for better readability */
+            flex-grow: 1; /* Allows description to take available space */
+            word-break: break-word; /* Prevents long words from overflowing */
+        }
+        .no-items-message {
+            color: #6b7280;
+            font-style: italic;
+            margin-top: 15px;
+            text-align: center;
+        }
+
+        /* Adjustments for smaller screens */
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px;
+            }
+            h1 {
+                font-size: 1.75rem; /* text-3xl */
+            }
+            .daily-menu-section h2 {
+                font-size: 1.5rem; /* text-2xl */
+            }
+            .menu-items-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Weekly Menu Viewer</h1>
+        <p id="week-info" class="text-gray-600 mb-6"></p>
+
+        <div id="status-message" class="message-box hidden"></div>
+        <div id="loading-indicator" class="loading-spinner"></div>
+
+        <div id="weekly-menu-container">
+            <!-- Daily menu sections will be rendered here -->
+        </div>
+    </div>
+
+    <script>
+        // Function to show a custom message box
+        function showMessageBox(message, type = 'info') {
+            const messageBox = document.getElementById('status-message');
+            messageBox.textContent = message;
+            messageBox.classList.remove('hidden', 'bg-red-100', 'border-red-200', 'text-red-800', 'bg-green-100', 'border-green-200', 'text-green-800', 'bg-yellow-100', 'border-yellow-200', 'text-yellow-800');
+
+            if (type === 'error') {
+                messageBox.classList.add('bg-red-100', 'border-red-200', 'text-red-800');
+            } else if (type === 'success') {
+                messageBox.classList.add('bg-green-100', 'border-green-200', 'text-green-800');
+            } else { // info or default
+                messageBox.classList.add('bg-yellow-100', 'border-yellow-200', 'text-yellow-800');
+            }
+            messageBox.classList.remove('hidden');
+        }
+
+        // Function to hide the custom message box
+        function hideMessageBox() {
+            document.getElementById('status-message').classList.add('hidden');
+        }
+
+        // Function to show loading spinner
+        function showLoading() {
+            document.getElementById('loading-indicator').classList.remove('hidden');
+            hideMessageBox(); // Hide any previous messages
+            document.getElementById('weekly-menu-container').innerHTML = ''; // Clear previous items
+        }
+
+        // Function to hide loading spinner
+        function hideLoading() {
+            document.getElementById('loading-indicator').classList.add('hidden');
+        }
+
+        async function get_token() {
+            const url = 'https://api.joinprogram.com/oauth/token';
+            const headers = {
+                'accept': 'application/json, text/plain, */*',
+                'accept-encoding': 'gzip, deflate, br, zstd',
+                'accept-language': 'en-US,en;q=0.5',
+                'connection': 'keep-alive',
+                'content-type': 'application/json',
+                'host': 'api.joinprogram.com',
+                'origin': 'https://menu.joinprogram.com',
+                'referer': 'https://menu.joinprogram.com/',
+                'sec-fetch-dest': 'empty',
+                'sec-fetch-mode': 'cors',
+                'sec-fetch-site': 'same-site',
+                'user-agent': 'Mozilla/5.0 (X11; Linux x86_64; rv:137.0) Gecko/20100101 Firefox/137.0',
+            };
+            const request_data = {
+                'client_id': '3',
+                'client_secret': '2o3sF2uoTdp2fDDV1ol3jSV54fmngtZKNBrRf8Tg', // SENSITIVE INFORMATION
+                'grant_type': 'client_credentials',
+            };
+
+            try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: headers,
+                    body: JSON.stringify(request_data),
+                });
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`HTTP error! status: ${response.status}, response: ${errorText}`);
+                }
+
+                const response_data = await response.json();
+                return response_data['access_token'];
+            } catch (error) {
+                console.error("Error getting token:", error);
+                showMessageBox(`Failed to get authentication token: ${error.message}. Please try again later.`, 'error');
+                return null;
+            }
+        }
+
+        async function get_menu_from_api(date, token) {
+            const url = 'https://api.joinprogram.com/graphql?operationName=dailyMenu&requestId=1';
+            const headers = {
+                'accept': '*/*',
+                'accept-encoding': 'gzip, deflate, br, zstd',
+                'accept-language': 'en-US,en;q=0.5',
+                'authorization': `Bearer ${token}`,
+                'connection': 'keep-alive',
+                'content-type': 'application/json',
+                'host': 'api.joinprogram.com',
+                'origin': 'https://menu.joinprogram.com',
+                'referer': 'https://menu.joinprogram.com/',
+                'sec-fetch-dest': 'empty',
+                'sec-fetch-mode': 'cors',
+                'sec-fetch-site': 'same-site',
+                'user-agent': 'Mozilla/5.0 (X11; Linux x86_64; rv:137.0) Gecko/20100101 Firefox/137.0',
+            };
+            const request_data = {
+                'operationName': 'dailyMenu',
+                'query': 'query dailyMenu($clientID: ID!, $date: Date!, $filters: DailyMenuFilters) {\n  dailyMenu(clientID: $clientID, date: $date, filters: $filters) {\n    date\n    restaurants {\n      items {\n        ...DailyMenuItem\n        __typename\n      }\n      __typename\n    }\n    __typename\n  }\n}\n\nfragment DailyMenuItem on DailyMenuItem {\n  name\n  tagline\n  description\n  price\n  tags {\n    name\n    __typename\n  }\n  sources {\n    ...DailyMenuItemSourceIDs\n    __typename\n  }\n  context {\n    restaurantID\n    __typename\n  }\n  category: publicCategory {\n    id\n    name\n    __typename\n  }\n  allergens {\n    ...Allergen\n    __typename\n  }\n  nutrients {\n    ...Nutrient\n    __typename\n  }\n  additions {\n    ...Addition\n    __typename\n  }\n  images {\n    ...DailyMenuItemImages\n    __typename\n  }\n  stock {\n    ...ApiStockNumbers\n    __typename\n  }\n  __typename\n}\n\nfragment DailyMenuItemSourceIDs on DailyMenuItemSourceIDs {\n  menuEntry\n  menuEntryOccurrence\n  product\n  productVersion\n  __typename\n}\n\nfragment Allergen on Allergen {\n  id\n  name\n  icon\n  __typename\n}\n\nfragment Nutrient on Nutrient {\n  __typename\n  NutrientType {\n    __typename\n    id\n    name\n    unit\n  }\n  perHundredGram\n}\n\nfragment Addition on Addition {\n  id\n  name\n  price\n  __typename\n}\n\nfragment DailyMenuItemImages on DailyMenuItemImages {\n  original\n  square150\n  square300\n  square600\n  __typename\n}\n\nfragment ApiStockNumbers on StockNumbers {\n  amountTotalInitial\n  amountTotalCorrection\n  amountTotal\n  amountClaimed\n  amountIssued\n  amountReserved\n  amountAvailable\n  amountIssuable\n  isConstrained\n  isExhausted\n  isCorrected\n  __typename\n}',
+                'variables': {
+                    'clientID': '11',
+                    'date': date,
+                    'filters': {
+                        'productTypes': ['MEAL'],
+                        'restaurants': ['17', '18', '19', '78'],
+                    }
+                },
+            };
+
+            try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: headers,
+                    body: JSON.stringify(request_data),
+                });
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`HTTP error! status: ${response.status}, response: ${errorText}`);
+                }
+
+                const response_data = await response.json();
+                return response_data;
+            } catch (error) {
+                console.error(`Error getting menu for ${date} from API:`, error);
+                showMessageBox(`Failed to fetch menu data for ${date} from API: ${error.message}.`, 'error');
+                return null;
+            }
+        }
+
+        // Function to render menu items for a given day
+        function renderMenuItems(menuItemsGridElement, items) {
+            menuItemsGridElement.innerHTML = ''; // Clear previous items
+            if (items && items.length > 0) {
+                items.forEach(item => {
+                    const menuItemDiv = document.createElement('div');
+                    menuItemDiv.classList.add('menu-item', 'rounded-lg', 'shadow-sm', 'hover:shadow-md', 'transition-shadow');
+                    menuItemDiv.innerHTML = `
+                        <img src="${item.image}" alt="${item.name}" class="w-full h-48 object-cover rounded-md mb-4" onerror="this.onerror=null;this.src='https://placehold.co/300x200/cccccc/333333?text=No+Image';">
+                        <h3 class="text-lg font-bold mb-2">${item.name}</h3>
+                        <p class="text-gray-700 text-sm flex-grow">${item.description}</p>
+                    `;
+                    menuItemsGridElement.appendChild(menuItemDiv);
+                });
+            } else {
+                menuItemsGridElement.innerHTML = '<p class="no-items-message">No menu items available for this day.</p>';
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            const weeklyMenuContainer = document.getElementById('weekly-menu-container');
+            const weekInfoElement = document.getElementById('week-info');
+
+            showLoading(); // Show loading spinner
+
+            const token = await get_token();
+            if (!token) {
+                hideLoading();
+                return; // Message already shown by get_token()
+            }
+
+            // --- Date calculation for current or next week ---
+            const today = new Date();
+            let mondayOfTargetWeek = new Date(today);
+            const dayOfWeek = today.getDay(); // 0 for Sunday, 1 for Monday, ..., 6 for Saturday
+
+            // If today is Sunday (0), set target to next Monday
+            if (dayOfWeek === 0) {
+                mondayOfTargetWeek.setDate(today.getDate() + 1);
+                weekInfoElement.textContent = "Displaying the daily menu from Monday to Friday for NEXT week.";
+            } else { // If today is Monday to Saturday, set target to this week's Monday
+                mondayOfTargetWeek.setDate(today.getDate() - dayOfWeek + 1);
+                weekInfoElement.textContent = "Displaying the daily menu from Monday to Friday for the CURRENT week.";
+            }
+
+            const targetWeekMondayDateStr = `${mondayOfTargetWeek.getFullYear()}-${String(mondayOfTargetWeek.getMonth() + 1).padStart(2, '0')}-${String(mondayOfTargetWeek.getDate()).padStart(2, '0')}`;
+            const localStorageKey = `menuCache_${targetWeekMondayDateStr}`;
+
+            let allMenusLoaded = true;
+            let fetchedWeekMenuData = {}; // Object to store data before caching
+
+            try {
+                // Try to get menu data from localStorage cache first
+                const cachedDataString = localStorage.getItem(localStorageKey);
+
+                if (cachedDataString) {
+                    const cachedData = JSON.parse(cachedDataString);
+                    // Verify that the cached data is indeed for the correct week
+                    if (cachedData.weekStartDate === targetWeekMondayDateStr) {
+                        console.log(`Menu for week starting ${targetWeekMondayDateStr} found in localStorage cache.`);
+                        allMenusLoaded = true; // Assume all loaded from cache
+
+                        // Render from cached data
+                        for (let i = 0; i < 5; i++) {
+                            const currentDate = new Date(mondayOfTargetWeek);
+                            currentDate.setDate(mondayOfTargetWeek.getDate() + i);
+                            const dateStr = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-${String(currentDate.getDate()).padStart(2, '0')}`;
+
+                            const dayName = currentDate.toLocaleDateString('en-US', { weekday: 'long' });
+                            const displayDate = currentDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+
+                            const dailyMenuSection = document.createElement('div');
+                            dailyMenuSection.classList.add('daily-menu-section', 'rounded-lg', 'mb-6');
+                            dailyMenuSection.innerHTML = `<h2>${dayName}, ${displayDate}</h2><div class="menu-items-grid"></div>`;
+                            weeklyMenuContainer.appendChild(dailyMenuSection);
+                            const menuItemsGrid = dailyMenuSection.querySelector('.menu-items-grid');
+
+                            const dailyItems = cachedData.menuData[dateStr];
+                            renderMenuItems(menuItemsGrid, dailyItems);
+                        }
+                        showMessageBox('Weekly menu loaded from cache successfully.', 'success');
+                    } else {
+                        // Cache exists but for a different week, so invalidate and fetch
+                        console.log("Cached data found but for a different week. Fetching new data.");
+                        localStorage.removeItem(localStorageKey); // Clear old cache
+                        throw new Error("Cache outdated, force fetch."); // Trigger re-fetching logic
+                    }
+                } else {
+                    throw new Error("No cached data found. Fetching from API."); // Trigger re-fetching logic
+                }
+            } catch (cacheError) {
+                console.warn("Cache read/validation error, fetching from API:", cacheError.message);
+                // If cache fails or is not found, proceed to fetch from API
+                allMenusLoaded = true; // Reset for fresh fetch status
+                fetchedWeekMenuData = {}; // Clear for new data
+
+                const weekDates = [];
+                for (let i = 0; i < 5; i++) { // 5 days for Monday to Friday
+                    const currentDate = new Date(mondayOfTargetWeek);
+                    currentDate.setDate(mondayOfTargetWeek.getDate() + i);
+                    const year = currentDate.getFullYear();
+                    const month = String(currentDate.getMonth() + 1).padStart(2, '0');
+                    const day = String(currentDate.getDate()).padStart(2, '0');
+                    weekDates.push(`${year}-${month}-${day}`);
+                }
+
+                for (const date of weekDates) {
+                    const dayName = new Date(date).toLocaleDateString('en-US', { weekday: 'long' });
+                    const displayDate = new Date(date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+
+                    const dailyMenuSection = document.createElement('div');
+                    dailyMenuSection.classList.add('daily-menu-section', 'rounded-lg', 'mb-6');
+                    dailyMenuSection.innerHTML = `<h2>${dayName}, ${displayDate}</h2><div class="menu-items-grid"></div>`;
+                    weeklyMenuContainer.appendChild(dailyMenuSection);
+
+                    const menuItemsGrid = dailyMenuSection.querySelector('.menu-items-grid');
+                    const data = await get_menu_from_api(date, token);
+
+                    if (data && data.data && data.data.dailyMenu && data.data.dailyMenu.restaurants) {
+                        const items = [];
+                        for (const restaurant of data.data.dailyMenu.restaurants) {
+                            if (restaurant.items) {
+                                for (const item of restaurant.items) {
+                                    items.push({
+                                        'name': item.name || 'No Name',
+                                        'description': item.description || 'No description available.',
+                                        'image': item.images && item.images.original ? item.images.original : 'https://placehold.co/300x200/cccccc/333333?text=No+Image',
+                                    });
+                                }
+                            }
+                        }
+                        fetchedWeekMenuData[date] = items; // Store for caching
+
+                        renderMenuItems(menuItemsGrid, items);
+                    } else {
+                        renderMenuItems(menuItemsGrid, []); // Render empty state
+                        menuItemsGrid.innerHTML += '<p class="no-items-message">Failed to retrieve menu data for this day from API.</p>';
+                        allMenusLoaded = false;
+                    }
+                }
+
+                // Attempt to save the newly fetched data to localStorage cache
+                try {
+                    localStorage.setItem(localStorageKey, JSON.stringify({
+                        weekStartDate: targetWeekMondayDateStr,
+                        menuData: fetchedWeekMenuData,
+                        cachedAt: new Date().toISOString()
+                    }));
+                    console.log(`Menu for week starting ${targetWeekMondayDateStr} saved to localStorage cache.`);
+                } catch (cacheWriteError) {
+                    console.error("Error writing menu to localStorage cache:", cacheWriteError);
+                    showMessageBox('Failed to save menu to cache. It will be fetched again next time.', 'warning');
+                }
+            }
+
+            hideLoading();
+            if (allMenusLoaded) {
+                showMessageBox('Weekly menu loaded successfully.', 'success');
+            } else {
+                showMessageBox('Some daily menus could not be loaded. Please check the console for errors.', 'error');
+            }
+        });
+    </script>
+</body>
+</html>
+
