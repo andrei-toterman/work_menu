@@ -71,7 +71,32 @@
             color: #2d3748;
             margin-bottom: 20px;
             text-align: center;
+            cursor: pointer; /* Indicate it's clickable */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
         }
+        .daily-menu-section h2 .toggle-icon {
+            transition: transform 0.3s ease;
+        }
+        .daily-menu-section h2.collapsed .toggle-icon {
+            transform: rotate(-90deg); /* Rotate icon when collapsed */
+        }
+
+        .menu-items-content {
+            max-height: 1000px; /* Arbitrary large value for expanded state */
+            overflow: hidden;
+            transition: max-height 0.5s ease-out, opacity 0.5s ease-out;
+            opacity: 1;
+        }
+        .menu-items-content.collapsed {
+            max-height: 0;
+            opacity: 0;
+            padding-top: 0;
+            padding-bottom: 0;
+        }
+
         .menu-items-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
@@ -296,6 +321,17 @@
             }
         }
 
+        // Function to toggle the collapse state of a daily menu section
+        function toggleDailyMenu(event) {
+            const sectionHeader = event.currentTarget; // The h2 element that was clicked
+            const sectionContent = sectionHeader.nextElementSibling; // The div containing menu items
+
+            if (sectionContent) {
+                sectionContent.classList.toggle('collapsed');
+                sectionHeader.classList.toggle('collapsed'); // Toggle class on header for icon rotation
+            }
+        }
+
         document.addEventListener('DOMContentLoaded', async () => {
             const weeklyMenuContainer = document.getElementById('weekly-menu-container');
             const weekInfoElement = document.getElementById('week-info');
@@ -350,10 +386,23 @@
 
                             const dailyMenuSection = document.createElement('div');
                             dailyMenuSection.classList.add('daily-menu-section', 'rounded-lg', 'mb-6');
-                            dailyMenuSection.innerHTML = `<h2>${dayName}, ${displayDate}</h2><div class="menu-items-grid"></div>`;
+                            // Add a toggle icon and attach click listener
+                            dailyMenuSection.innerHTML = `
+                                <h2 class="collapsed">
+                                    <span class="toggle-icon">&#9660;</span> <!-- Unicode down arrow -->
+                                    ${dayName}, ${displayDate}
+                                </h2>
+                                <div class="menu-items-content collapsed">
+                                    <div class="menu-items-grid"></div>
+                                </div>
+                            `;
                             weeklyMenuContainer.appendChild(dailyMenuSection);
-                            const menuItemsGrid = dailyMenuSection.querySelector('.menu-items-grid');
 
+                            // Attach the event listener to the h2 after it's added to the DOM
+                            dailyMenuSection.querySelector('h2').addEventListener('click', toggleDailyMenu);
+
+
+                            const menuItemsGrid = dailyMenuSection.querySelector('.menu-items-grid');
                             const dailyItems = cachedData.menuData[dateStr];
                             renderMenuItems(menuItemsGrid, dailyItems);
                         }
@@ -389,8 +438,19 @@
 
                     const dailyMenuSection = document.createElement('div');
                     dailyMenuSection.classList.add('daily-menu-section', 'rounded-lg', 'mb-6');
-                    dailyMenuSection.innerHTML = `<h2>${dayName}, ${displayDate}</h2><div class="menu-items-grid"></div>`;
+                    dailyMenuSection.innerHTML = `
+                        <h2 class="collapsed">
+                            <span class="toggle-icon">&#9660;</span> <!-- Unicode down arrow -->
+                            ${dayName}, ${displayDate}
+                        </h2>
+                        <div class="menu-items-content collapsed">
+                            <div class="menu-items-grid"></div>
+                        </div>
+                    `;
                     weeklyMenuContainer.appendChild(dailyMenuSection);
+
+                    // Attach the event listener to the h2 after it's added to the DOM
+                    dailyMenuSection.querySelector('h2').addEventListener('click', toggleDailyMenu);
 
                     const menuItemsGrid = dailyMenuSection.querySelector('.menu-items-grid');
                     const data = await get_menu_from_api(date, token);
@@ -442,4 +502,3 @@
     </script>
 </body>
 </html>
-
